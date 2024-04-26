@@ -2,7 +2,7 @@ plugins {
     id "java"
     id "maven-publish"
     id "signing"
-    id "org.embulk.embulk-plugins" version "0.5.5"
+    alias(libs.plugins.gradle.embulk.plugins)
     id "checkstyle"
 }
 
@@ -34,10 +34,12 @@ java {
 }
 
 dependencies {
-    compileOnly "org.embulk:embulk-spi:0.11"
-    compileOnly "org.slf4j:slf4j-api:2.0.7"
+    compileOnly libs.embulk.spi
+    compileOnly libs.slf4j
 
-    implementation "org.embulk:embulk-util-config:0.3.4"
+    implementation libs.embulk.util.config
+    implementation libs.validation
+    implementation libs.bundles.jackson
 }
 
 embulkPlugin {
@@ -61,6 +63,19 @@ sourcesJar {
 javadocJar {
     metaInf {
         from rootProject.file("LICENSE")
+    }
+}
+
+// A safer and strict alternative to: "dependencies" (and "dependencies --write-locks")
+//
+// This task fails explicitly when the specified dependency is not available.
+// In contrast, "dependencies (--write-locks)" does not fail even when a part the dependencies are unavailable.
+//
+// https://docs.gradle.org/8.7/userguide/dependency_locking.html#generating_and_updating_dependency_locks
+task checkDependencies {
+    notCompatibleWithConfigurationCache("The task \"checkDependencies\" filters configurations at execution time.")
+    doLast {
+        configurations.findAll { it.canBeResolved }.each { it.resolve() }
     }
 }
 
